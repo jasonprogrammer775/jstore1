@@ -1,12 +1,26 @@
-'use client'
+"use client";
 
 import Link from "next/link";
 import { ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { useCartStore } from "@/store/cart";
+import { useAuthStore } from "@/store/auth";
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const items = useCartStore((state) => state.items);
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+  const { user, setUser, signOut } = useAuthStore();
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [setUser]);
 
   return (
     <nav className="bg-white shadow-sm">
@@ -40,6 +54,24 @@ export function Navbar() {
                 </span>
               )}
             </Link>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-700">{user.email}</span>
+                <button
+                  onClick={() => signOut()}
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/auth/signin"
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </div>
