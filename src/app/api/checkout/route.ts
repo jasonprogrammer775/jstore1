@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { headers } from "next/headers";
+import { Product } from "@/lib/supabase";
+
+interface CartItem extends Product {
+  quantity: number;
+}
+
+interface CheckoutRequestBody {
+  items: CartItem[];
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -8,7 +17,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = (await req.json()) as CheckoutRequestBody;
     const origin = headers().get("origin");
 
     if (!body.items?.length) {
@@ -22,7 +31,7 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      line_items: body.items.map((item: any) => ({
+      line_items: body.items.map((item: CartItem) => ({
         price_data: {
           currency: "usd",
           product_data: {
